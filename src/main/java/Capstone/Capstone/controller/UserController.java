@@ -2,6 +2,8 @@ package Capstone.Capstone.controller;
 
 
 import Capstone.Capstone.Service.UserService;
+import Capstone.Capstone.dto.LoginDto;
+import Capstone.Capstone.dto.SignUpDto;
 import Capstone.Capstone.dto.SmsDto;
 import Capstone.Capstone.dto.UserDto;
 import Capstone.Capstone.entity.User;
@@ -15,6 +17,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -26,10 +34,12 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final AuthenticationManager authenticationManager;
 
     @Autowired
-    public UserController(UserService userService) {
+    public UserController(UserService userService, AuthenticationManager authenticationManager) {
         this.userService = userService;
+        this.authenticationManager = authenticationManager;
     }
 
     @PostMapping("/signUp")
@@ -38,44 +48,53 @@ public class UserController {
             @ApiResponse(responseCode = "201", description = "유저 셍성")
     })
     @Operation(summary = "회원가입", description = "User 정보를 저장합니다.")
-    public ResponseEntity<Void> signUp(@RequestBody User user) {
-        userService.saveUser(user);
+    //기존 User 로 받던 signup 요청 body를 signUpDto로 변경
+    public ResponseEntity<Void> signUp(@RequestBody SignUpDto signUpDto) {
+        userService.saveUser(signUpDto);
         return new ResponseEntity<>(HttpStatus.CREATED);
     }
+
 
     @GetMapping("/getUser/{userId}")
     @Tag(name = "User API")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "유저 확인"),
-            @ApiResponse(responseCode = "400", description = "유효하지 않은 유저"),
+            @ApiResponse(responseCode = "404", description = "유효하지 않은 유저"),
     })
     @Operation(summary = "회원 찾기", description = "id를 기반으로 user를 찾습니다.")
     public ResponseEntity<UserDto> getUserById(@PathVariable("userId") String userId) {
-        UserDto userDto = userService.convertToDto(userService.getUserById(userId));
-        if (userDto != null) {
-            return new ResponseEntity<>(userDto, HttpStatus.OK);
-        }
-        return new ResponseEntity<>(null, HttpStatus.BAD_REQUEST);
+        User user=userService.getUserById(userId);
+       if(user!=null){
+           UserDto userDto=userService.convertToDto(user);
+           return new ResponseEntity<>(userDto, HttpStatus.OK);
+       }
+       else{
+           return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+       }
+
     }
 
     @PostMapping("/login")
     @Tag(name = "User API")
     @Operation(summary = "로그인", description = "id와 password를 기반으로 로그인합니다.")
-    public ResponseEntity<UserDto> login(@RequestBody User user, HttpServletRequest request) {
-        String Id=user.getId();
-        String password=user.getPassword();
-        User findUser=userService.getUserById(Id);
-        boolean isAuthenticated = userService.authenticateUser(Id, password);
-        if (isAuthenticated) {
-            HttpSession session = request.getSession(true);
-            session.setAttribute("id",findUser.getId());
-            session.setAttribute("nickname",findUser.getNickname());
-            UserDto userDto=new UserDto();
-            userDto.setId(findUser.getId());
-            userDto.setNickname(findUser.getNickname());
-            return new ResponseEntity<>(userDto, HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>(null, HttpStatus.UNAUTHORIZED);
+    //Spring Security 적용
+    public ResponseEntity<?> login(@RequestBody LoginDto loginDto, HttpServletRequest request) {
+        try {
+            Authentication auth = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginDto.getId(), loginDto.getPassword())
+            );
+            SecurityContextHolder.getContext().setAuthentication(auth);
+            request.getSession(true); // JSESSIONID 발급
+
+            User findUser = userService.getUserById(loginDto.getId());
+            UserDto dto = userService.convertToDto(findUser);
+
+            return ResponseEntity.ok(dto);
+
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("아이디 또는 비밀번호가 올바르지 않습니다.");
+        } catch (UsernameNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("사용자를 찾을 수 없습니다.");
         }
     }
 
@@ -83,13 +102,17 @@ public class UserController {
     @GetMapping("/logout")
     @Tag(name="User API")
     @Operation(summary="로그아웃",description = "사용자 세션을 무효화하여 로그아웃시킵니다,")
-    public void logOut(@CookieValue (value = "JSSEIONID",defaultValue = "")String sessionId,HttpServletRequest request){
-        HttpSession session=request.getSession(false);
-
-        if(session!=null&&session.getId().equals(sessionId)){
-            session.invalidate();
+    //Spring Security 적용
+    public ResponseEntity<Void> logOut(HttpServletRequest request){
+        HttpSession session = request.getSession(false);
+        if (session != null) {
+            session.invalidate(); // 세션 무효화
         }
+        SecurityContextHolder.clearContext();
+        return ResponseEntity.ok().build();
     }
+
+
 
     @GetMapping("/checkId")
     public ResponseEntity<Boolean> checkId(@RequestParam String id){

@@ -1,9 +1,10 @@
 package Capstone.Capstone.Service;
+import Capstone.Capstone.dto.SignUpDto;
 import Capstone.Capstone.dto.UserDto;
 import Capstone.Capstone.entity.User;
 
 public interface UserService {
-    void saveUser(User user);
+    void saveUser(SignUpDto user);
 
     User getUserById(String Id);
 

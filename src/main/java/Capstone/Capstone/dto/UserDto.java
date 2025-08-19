@@ -7,10 +7,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 
-
+@AllArgsConstructor
 @NoArgsConstructor
 @Getter @Setter
 public class UserDto {
@@ -18,7 +19,7 @@ public class UserDto {
 
 
     private String name;
-    private Date birthdate;
+    private LocalDate birthdate;
     private String phoneNumber;
     private String id;
     private String profileImage;
