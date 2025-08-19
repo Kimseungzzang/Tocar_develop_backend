@@ -1,6 +1,7 @@
 package Capstone.Capstone.servicelmpl;
 
 import Capstone.Capstone.Service.UserService;
+import Capstone.Capstone.dto.SignUpDto;
 import Capstone.Capstone.dto.UserDto;
 import Capstone.Capstone.entity.Community;
 import Capstone.Capstone.entity.User;
@@ -8,7 +9,10 @@ import Capstone.Capstone.utils.SmsUtil;
 import Capstone.Capstone.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -25,27 +29,40 @@ import java.util.Optional;
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-
+    private final PasswordEncoder passwordEncoder;
     private final SmsUtil smsUtil;
 
 
     @Autowired
-    public UserServiceImpl(UserRepository userRepository,SmsUtil smsUtil) {
+    public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, SmsUtil smsUtil) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
         this.smsUtil=smsUtil;
     }
 
     @Override
-    public void saveUser(User user) {
-        userRepository.save(user);
+    public void saveUser(SignUpDto user) {
+
+       User savedUser= User.builder()
+               .id(user.getId())
+                .nickname(user.getNickname())
+                .password(passwordEncoder.encode(user.getPassword()))
+                .name(user.getName())
+                .birthdate(user.getBirthdate())
+                .phoneNumber(user.getPhoneNumber())
+                .profileImage(user.getProfileImage())
+                .build();
+
+
+        userRepository.save(savedUser);
 
     }
 
     @Override
     public User getUserById(String Id) {
         Optional<User> optionalUser = userRepository.findById(Id);
-        log.info("{}",optionalUser);
         return optionalUser.orElse(null);
+
     }
     @Override
     public void updateUserPassword(String Id, String newPassword) {
@@ -116,6 +133,7 @@ public class UserServiceImpl implements UserService {
         Optional<User> user=userRepository.findById(userDto.getId());
         if (user.isPresent()){
            User findUser=user.get();
+
 
            findUser.setNickname(userDto.getNickname());
            findUser.setBirthdate(userDto.getBirthdate());
@@ -196,7 +214,6 @@ public class UserServiceImpl implements UserService {
 
         userRepository.save(user);
     }
-
 
 
 

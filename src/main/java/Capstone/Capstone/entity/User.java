@@ -1,31 +1,34 @@
 package Capstone.Capstone.entity;
 
 
-import Capstone.Capstone.dto.RecruitDto;
-import Capstone.Capstone.entity.Comment;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
 
-import java.util.Date;
+import jakarta.persistence.*;
+import lombok.*;
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+@Builder
 @Entity
 @Getter
 @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Table(name = "ToCar_user")
 public class User {
     @Id
     @Column(name = "id")
     private String id;
 
     private String name;
-    private Date birthdate;
+    private LocalDate birthdate; // 타임존이 항상 들어가는 Date 대신 LocalDate로 변경
     private String phoneNumber;
     private String profileImage;
     private String password;
+
+
+    @Column(unique = true, nullable = false)  //nickname에 unique 제약 조건 추가.
     private String nickname;
 
     private boolean isDriver; //현재 운전자 모드인지 아닌지
