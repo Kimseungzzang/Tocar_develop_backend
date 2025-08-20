@@ -27,7 +27,7 @@ public interface RecruitService {
 
     List<Recruit> findRecruitsByDistance(double userLat, double userLon);
 
-    int calculateDistance(double lat1, double lon1, double lat2, double lon2);
+    double calculateDistance(double lat1, double lon1, double lat2, double lon2);
 
     List<Recruit> findRecruitsByKeywords(List<String> keywords);
 
@@ -44,7 +44,7 @@ public interface RecruitService {
 
     List<RecruitDto> getBookingRecord(String nickname);
 
-    int calculateTaxiFare(double distance, double time);
+    int calculateTaxiFare(double distance);
 
     void addRecruitRating(Long recruitId, double star);
 

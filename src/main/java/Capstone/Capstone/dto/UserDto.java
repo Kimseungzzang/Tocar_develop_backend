@@ -30,7 +30,7 @@ public class UserDto {
     private boolean isDriver; //현재 운전자 모드인지 아닌지
     private String driverLicense; //운전면허증 등록여부
     private List<Recruit> recruits;
-    
+    private String email;
 
 
 

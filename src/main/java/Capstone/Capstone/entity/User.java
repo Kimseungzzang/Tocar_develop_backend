@@ -26,7 +26,7 @@ public class User {
     private String phoneNumber;
     private String profileImage;
     private String password;
-
+    private String email; // email 추가
 
     @Column(unique = true, nullable = false)  //nickname에 unique 제약 조건 추가.
     private String nickname;
@@ -53,6 +53,8 @@ public class User {
     @ManyToMany(mappedBy = "users")
     private Set<ChatRoom> chatRooms = new HashSet<>();
 
-
+    //낙관적 락을 위한 version 추가
+    @Version
+    private long version;
 
 }

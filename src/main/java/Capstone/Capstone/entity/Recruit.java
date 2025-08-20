@@ -20,11 +20,13 @@ public class Recruit {
     private int idxNum;
     private String title;
     private String contents;
-    private String nickname;
     private String id;
     private double star=0.0;
-    private double avgStar=0.0;
 
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "author_id") // PK(id) 기준 권장
+    private User author;
     @ElementCollection
     private List<String> keywords = new ArrayList<>(); //키워드
 
@@ -35,7 +37,10 @@ public class Recruit {
     private String time;
     private int distance; //사용자 실시간 위치에서 모집글 사용자 위치까지 거리
 
-    private boolean isDriverPost; //운전자가 작성한 글인지 아닌지
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    private PostType postType = PostType.GENERAL; //포스트 종류
+
     private int participant;
     private int maxParticipant;
 

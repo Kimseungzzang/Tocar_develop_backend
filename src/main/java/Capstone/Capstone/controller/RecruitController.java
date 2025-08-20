@@ -65,14 +65,18 @@ public class RecruitController {
     @Operation(summary = "모집 글 생성",description = "모집 글을 생성합니다.")
     public ResponseEntity<Recruit> createRecruit(@RequestBody RecruitDto recruitDto) {
 
-            int distance=recruitService.calculateDistance(recruitDto.getDepartureX(), recruitDto.getDepartureY(), recruitDto.getArrivalX(), recruitDto.getArrivalY());
-            int distance2 = recruitService.calculateDistance(recruitDto.getCurrentX(), recruitDto.getCurrentY(), recruitDto.getDepartureX(), recruitDto.getDepartureY());
+
+
+            //출발지에서 목적지
+            double distance=recruitService.calculateDistance(recruitDto.getDepartureX(), recruitDto.getDepartureY(), recruitDto.getArrivalX(), recruitDto.getArrivalY());
+            //현재위치에서 출발지
+            double distance2 = recruitService.calculateDistance(recruitDto.getCurrentX(), recruitDto.getCurrentY(), recruitDto.getDepartureX(), recruitDto.getDepartureY());
 
             recruitDto.setDistance(distance);
             recruitDto.setDistance2(distance2);
-            int fare = recruitService.calculateTaxiFare(recruitDto.getDistance(), recruitDto.getTimeTaxi());
-             recruitDto.setFare(fare);
-             recruitDto.setFull(false);
+            int fare = recruitService.calculateTaxiFare(distance);
+            recruitDto.setFare(fare);
+            recruitDto.setFull(false);
 
 
             Recruit createdRecruit = recruitService.createRecruit(recruitDto);

@@ -35,7 +35,8 @@ dependencies {
 	implementation 'com.fasterxml.jackson.core:jackson-databind:2.16.1'
 	implementation 'org.modelmapper:modelmapper:2.4.4'
 	implementation 'org.springframework.boot:spring-boot-starter-security' //SpringSecurity 의존성 추가
-
+	implementation("org.springframework.session:spring-session-data-redis")
+	implementation("org.springframework.boot:spring-boot-starter-data-redis")
 
 
 }

@@ -8,6 +8,7 @@ import Capstone.Capstone.repository.UserRepository;
 import Capstone.Capstone.entity.Recruit;
 import Capstone.Capstone.entity.User;
 import Capstone.Capstone.repository.RecruitRepository;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,11 +73,11 @@ public class RecruitServiceImpl implements RecruitService {
        return null;
     }
 
+    @Transactional
     @Override
     public Recruit createRecruit(RecruitDto recruitDto){
 
       Recruit recruit= ConvertToEntity(recruitDto);
-      recruit.setAvgStar(userRepository.findByNickname(recruitDto.getNickname()).getAvgStar());
       recruit.setFull(false);
         return recruitRepository.save(recruit);
     }
@@ -97,8 +98,6 @@ public class RecruitServiceImpl implements RecruitService {
         Recruit recruit = recruitOptional.get();
         recruit.setTitle(recruitDetails.getTitle());
         recruit.setContents(recruitDetails.getContents());
-        recruit.setNickname(recruitDetails.getNickname());
-
         recruit.setStar(recruitDetails.getStar());
 
 
@@ -124,24 +123,21 @@ public class RecruitServiceImpl implements RecruitService {
     }
 
     @Override
-    public int calculateDistance(double lat1, double lon1, double lat2, double lon2) {
-        double distance;
-        double radius = 6371; // 지구 반지름(km)
+    public double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+        double radius = 6371; // km
         double toRadian = Math.PI / 180;
 
-        double deltaLatitude = Math.abs(lat1 - lat2) * toRadian;
-        double deltaLongitude = Math.abs(lon1 - lon2) * toRadian;
+        double deltaLatitude = (lat2 - lat1) * toRadian;
+        double deltaLongitude = (lon2 - lon1) * toRadian;
 
         double sinDeltaLat = Math.sin(deltaLatitude / 2);
         double sinDeltaLng = Math.sin(deltaLongitude / 2);
         double squareRoot = Math.sqrt(
                 sinDeltaLat * sinDeltaLat +
-                        Math.cos(lat1 * toRadian) * Math.cos(lat2 * toRadian) * sinDeltaLng * sinDeltaLng);
+                        Math.cos(lat1 * toRadian) * Math.cos(lat2 * toRadian) * sinDeltaLng * sinDeltaLng
+        );
 
-        distance = 2 * radius * Math.asin(squareRoot);
-
-
-        return (int)distance;
+        return 2 * radius * Math.asin(squareRoot); // 소수점까지 나타내기 위해 double반환으로 변경
     }
 
     @Override
@@ -161,7 +157,6 @@ public class RecruitServiceImpl implements RecruitService {
         recruit.setKeywords(recruitDto.getKeywords());
         recruit.setTitle(recruitDto.getTitle());
         recruit.setMessage(recruitDto.getMessage());
-        recruit.setNickname(recruitDto.getNickname());
         recruit.setParticipant(recruitDto.getParticipant());
         recruit.setMaxParticipant(recruitDto.getMaxParticipant());
         recruit.setUsers(recruitDto.getUsers());
@@ -211,20 +206,15 @@ public class RecruitServiceImpl implements RecruitService {
         recruitDto.setDepartureX(recruit.getDepartureX());
         recruitDto.setId(recruit.getId());
         recruitDto.setTime(recruit.getTime());
-
+        recruitDto.setStar();
         recruitDto.setDistance(recruit.getDistance());
         recruitDto.setIdxNum(recruit.getIdxNum());
-
-        recruitDto.setAvgStar(recruit.getAvgStar());
-
         recruitDto.setCurrentX(recruit.getCurrentX());
         recruitDto.setCurrentY(recruit.getCurrentY());
         recruitDto.setTimeTaxi(recruit.getTimeTaxi());
         recruitDto.setFare((recruit.getFare()));
-        User user=userRepository.findByNickname(recruit.getNickname());
-        UserDto userDto=new UserDto();
-        userDto.setProfileImage(user.getProfileImage());
-        userDto.setAvgStar(user.getAvgStar());
+        userDto.setProfileImage(recruit.getAuthor().getProfileImage());
+        userDto.setAvgStar(recruit.getAuthor().getAvgStar());
         recruitDto.setUserDto(userDto);
         recruitDto.setFull(recruit.isFull());
 
@@ -365,16 +355,19 @@ public class RecruitServiceImpl implements RecruitService {
 
 
     @Override
-    public int calculateTaxiFare(double distance, double time){
-        final double BASE_FARE = 4800; // 기본 요금
-        final double PER_KM_RATE = 763; // km당 요금
+    public int calculateTaxiFare(double distanceKm) {
+        final double BASE_FARE = 4800;     // 기본요금(1km 포함)
+        final double PER_KM_RATE = 763;    // 1km 초과분 km당
         final double PER_MINUTE_RATE = 50; // 분당 요금
+        final double AVG_SPEED_KM_PER_H = 60.0; // 평균속도 가정
 
-        time = distance / 60; //평균속도 60km로 가정하고 계산
-        double distanceFare = distance > 1 ? (distance - 1) * PER_KM_RATE : 0;
-        double timeFare = time * PER_MINUTE_RATE;
+        // 평균속도 60km/h → 1km = 1분
+        double timeMinutes = (distanceKm / AVG_SPEED_KM_PER_H) * 60.0; // == distanceKm
 
-        return (int) (BASE_FARE + distanceFare + timeFare);
+        double distanceFare = Math.max(0, distanceKm - 1.0) * PER_KM_RATE;
+        double timeFare = timeMinutes * PER_MINUTE_RATE;
+
+        return (int) Math.round(BASE_FARE + distanceFare + timeFare);
     }
 
 }

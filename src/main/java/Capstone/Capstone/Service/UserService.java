@@ -10,7 +10,7 @@ public interface UserService {
 
 
     void updateUserPassword(String Id, String newPassword);
-    boolean authenticateUser(String Id, String password);
+
     String sendSms(User user);
 
     User getUserByNickName(String nickName);
@@ -32,4 +32,5 @@ public interface UserService {
 
     void addRating(User user, double rating);
 
+  void addRatingOnce(String userId, double star);
 }
