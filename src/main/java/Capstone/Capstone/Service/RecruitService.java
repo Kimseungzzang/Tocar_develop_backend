@@ -1,6 +1,7 @@
 package Capstone.Capstone.Service;
 
 import Capstone.Capstone.dto.RecruitDto;
+import Capstone.Capstone.dto.RecruitRequest;
 import Capstone.Capstone.entity.Recruit;
 import Capstone.Capstone.entity.User;
 import org.springframework.stereotype.Service;
@@ -15,7 +16,7 @@ public interface RecruitService {
 
     RecruitDto getRecruitById(Long id);
 
-    Recruit createRecruit(RecruitDto recruitDto);
+    Recruit createRecruit(RecruitRequest recruitDto);
 
     void deleteRecruit(Long id);
 

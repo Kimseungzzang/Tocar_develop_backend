@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,8 +21,10 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.web.bind.annotation.*;
 
 @Slf4j
@@ -53,25 +56,30 @@ public class UserController {
 
     @PostMapping("/login")
     @Operation(summary = "로그인", description = "id와 password를 기반으로 로그인합니다.")
-    public ResponseEntity<?> login(@RequestBody LoginDto loginDto, HttpServletRequest request) {
+    public ResponseEntity<?> login(@RequestBody LoginDto loginDto,
+                                   HttpServletRequest request,
+                                   HttpServletResponse response) {
         try {
             Authentication auth = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginDto.getId(), loginDto.getPassword())
             );
-            SecurityContextHolder.getContext().setAuthentication(auth);
 
-            HttpSession session = request.getSession(true); // Redis 세션
+            SecurityContext context = SecurityContextHolder.createEmptyContext();
+            context.setAuthentication(auth);
+            SecurityContextHolder.setContext(context);
+
+            // ★ 핵심: 세션에 SPRING_SECURITY_CONTEXT로 저장
+            request.getSession(true)
+                    .setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
+
+            // (선택) 네가 따로 쓰는 세션 키도 유지
             User findUser = userService.getUserById(loginDto.getId());
             UserDto dto = userService.convertToDto(findUser);
-
-            session.setAttribute("LOGIN_USER", dto);
-            session.setAttribute("LOGIN_USER_ID", dto.getId());
+            request.getSession().setAttribute("LOGIN_USER_ID", dto.getId());
 
             return ResponseEntity.ok(dto);
-        } catch (BadCredentialsException e) {
+        } catch (BadCredentialsException | UsernameNotFoundException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("아이디 또는 비밀번호가 올바르지 않습니다.");
-        } catch (UsernameNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("사용자를 찾을 수 없습니다.");
         }
     }
 

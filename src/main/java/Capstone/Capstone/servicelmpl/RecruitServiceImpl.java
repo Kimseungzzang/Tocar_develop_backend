@@ -3,7 +3,9 @@ package Capstone.Capstone.servicelmpl;
 import Capstone.Capstone.Service.RecruitService;
 import Capstone.Capstone.Service.UserService;
 import Capstone.Capstone.dto.RecruitDto;
+import Capstone.Capstone.dto.RecruitRequest;
 import Capstone.Capstone.dto.UserDto;
+import Capstone.Capstone.entity.PostType;
 import Capstone.Capstone.repository.UserRepository;
 import Capstone.Capstone.entity.Recruit;
 import Capstone.Capstone.entity.User;
@@ -16,6 +18,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -75,10 +78,56 @@ public class RecruitServiceImpl implements RecruitService {
 
     @Transactional
     @Override
-    public Recruit createRecruit(RecruitDto recruitDto){
+    public Recruit createRecruit(RecruitRequest recruitRequest){
 
-      Recruit recruit= ConvertToEntity(recruitDto);
-      recruit.setFull(false);
+
+
+            var auth = org.springframework.security.core.context.SecurityContextHolder
+                    .getContext().getAuthentication();
+
+
+
+        System.out.println("== AUTH INFO ==");
+        System.out.println("Class       : " + (auth != null ? auth.getClass().getName() : "null"));
+        System.out.println("Principal   : " + (auth != null ? auth.getPrincipal() : "null"));
+        System.out.println("Name        : " + (auth != null ? auth.getName() : "null"));
+        System.out.println("Authorities : " + (auth != null ? auth.getAuthorities() : "null"));
+        System.out.println("isAuthenticated: " + (auth != null && auth.isAuthenticated()));
+
+            if (auth == null || !auth.isAuthenticated()) {
+                throw new org.springframework.security.access.AccessDeniedException("로그인 필요");
+            }
+
+            String username = auth.getName();
+            User author = userRepository.findById(username) // 또는 findByUsername
+                    .orElseThrow(() -> new IllegalArgumentException("유저 없음: " + username));
+
+
+
+
+        Recruit recruit = Recruit.builder()
+                .title(recruitRequest.getTitle())
+                .contents(recruitRequest.getContents())
+                .distance(recruitRequest.getDistance())
+                .distance2(recruitRequest.getDistance2())
+                .keywords(recruitRequest.getKeywords())
+                .destination(recruitRequest.getDestination())
+                .departure(recruitRequest.getDeparture())
+                .departureDate(recruitRequest.getDepartureDate())
+                .time(recruitRequest.getTime())
+                .createdAt(LocalDateTime.now()) // 생성 시간 서버에서
+                .message(recruitRequest.getMessage())
+                .maxParticipant(recruitRequest.getMaxParticipant())
+                .departureX(recruitRequest.getDepartureX())
+                .departureY(recruitRequest.getDepartureY())
+                .arrivalX(recruitRequest.getArrivalX())
+                .arrivalY(recruitRequest.getArrivalY())
+                .currentX(recruitRequest.getCurrentX())
+                .currentY(recruitRequest.getCurrentY())
+                .author(author)
+                .postType(PostType.GENERAL) //
+                .Full(false)// 직접 지정
+                .build();
         return recruitRepository.save(recruit);
     }
 
@@ -161,7 +210,6 @@ public class RecruitServiceImpl implements RecruitService {
         recruit.setMaxParticipant(recruitDto.getMaxParticipant());
         recruit.setUsers(recruitDto.getUsers());
         recruit.setBookingUsers(recruitDto.getBookingUsers());
-        recruit.setIsDriverPost(recruitDto.isDriverPost());
         recruit.setArrivalX(recruitDto.getArrivalX());
         recruit.setArrivalY(recruitDto.getArrivalY());
         recruit.setDepartureY(recruitDto.getDepartureY());
@@ -169,12 +217,10 @@ public class RecruitServiceImpl implements RecruitService {
         recruit.setIdxNum(recruitDto.getIdxNum());
         recruit.setDistance(recruitDto.getDistance());
         recruit.setDistance2(recruitDto.getDistance2());
-        recruit.setAvgStar(recruitDto.getAvgStar());
         recruit.setCurrentX(recruitDto.getCurrentX());
         recruit.setCurrentY(recruitDto.getCurrentY());
         recruit.setTime(recruitDto.getTime());
         recruit.setFare(recruitDto.getFare());
-        recruit.setId(recruitDto.getId());
         recruit.setTimeTaxi(recruitDto.getTimeTaxi());
         recruit.setFull(recruitDto.isFull());
         log.info("{}",recruitDto.getNickname());
@@ -194,31 +240,22 @@ public class RecruitServiceImpl implements RecruitService {
         recruitDto.setKeywords(recruit.getKeywords());
         recruitDto.setTitle(recruit.getTitle());
         recruitDto.setMessage(recruit.getMessage());
-        recruitDto.setNickname(recruit.getNickname());
         recruitDto.setParticipant(recruit.getParticipant());
         recruitDto.setMaxParticipant(recruit.getMaxParticipant());
         recruitDto.setUsers(recruit.getUsers());
         recruitDto.setBookingUsers(recruit.getBookingUsers());
-        recruitDto.setDriverPost(recruit.isDriverPost());
         recruitDto.setArrivalX(recruit.getArrivalX());
         recruitDto.setArrivalY(recruit.getArrivalY());
         recruitDto.setDepartureY(recruit.getDepartureY());
         recruitDto.setDepartureX(recruit.getDepartureX());
-        recruitDto.setId(recruit.getId());
         recruitDto.setTime(recruit.getTime());
-        recruitDto.setStar();
         recruitDto.setDistance(recruit.getDistance());
         recruitDto.setIdxNum(recruit.getIdxNum());
         recruitDto.setCurrentX(recruit.getCurrentX());
         recruitDto.setCurrentY(recruit.getCurrentY());
         recruitDto.setTimeTaxi(recruit.getTimeTaxi());
         recruitDto.setFare((recruit.getFare()));
-        userDto.setProfileImage(recruit.getAuthor().getProfileImage());
-        userDto.setAvgStar(recruit.getAuthor().getAvgStar());
-        recruitDto.setUserDto(userDto);
         recruitDto.setFull(recruit.isFull());
-
-
 
         return recruitDto;
     }
@@ -342,15 +379,17 @@ public class RecruitServiceImpl implements RecruitService {
             throw new IllegalArgumentException("Recruit not found with ID: " + recruitId);
         }
 
-        double totalStars = recruit.getAvgStar() * recruit.getStar();
+        double totalStars = recruit.getAuthor().getAvgStar() * recruit.getStar();
         totalStars += star;
         double newStarCount = recruit.getStar() + 1;
         double newAvgStar = totalStars / newStarCount;
 
         recruit.setStar(newStarCount);
-        recruit.setAvgStar(newAvgStar);
+        recruit.getAuthor().setAvgStar(newAvgStar);
 
+        userRepository.save(recruit.getAuthor());
         recruitRepository.save(recruit);
+
     }
 
 

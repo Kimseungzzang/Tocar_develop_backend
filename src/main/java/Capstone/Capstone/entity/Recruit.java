@@ -1,9 +1,7 @@
 package Capstone.Capstone.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -13,14 +11,15 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
 @Entity
+@Builder //빌더 추가
 public class Recruit {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int idxNum;
     private String title;
     private String contents;
-    private String id;
     private double star=0.0;
 
 
@@ -29,13 +28,14 @@ public class Recruit {
     private User author;
     @ElementCollection
     private List<String> keywords = new ArrayList<>(); //키워드
-
+    private boolean isDriverPost = false;
     private String destination; //목적지
     private String departure;
     private LocalDate departureDate; //출발일자
-    private int distance2; //사용자 실시간 위치에서 모집글 사용자 위치까지 거리
+    private double distance2; //사용자 실시간 위치에서 모집글 사용자 위치까지 거리
     private String time;
-    private int distance; //사용자 실시간 위치에서 모집글 사용자 위치까지 거리
+    private double distance; //사용자 실시간 위치에서 모집글 사용자 위치까지 거리
+
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
@@ -79,12 +79,6 @@ public class Recruit {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
-    }
-
-
-
-    public void setIsDriverPost(boolean isDriverPost) {
-        this.isDriverPost = isDriverPost;
     }
 
 

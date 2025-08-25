@@ -1,5 +1,6 @@
 package Capstone.Capstone.Security;
 
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -30,15 +31,42 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                // JSON API라면 CSRF 토큰 준비가 번거롭습니다. 우선 /login만 예외로.
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/api/user/login","/api/user/signUp"))
+                // JSON API라면 CSRF 토큰 준비가 번거롭습니다. 우선 /login, /signUp만 예외 처리
+                .csrf(csrf -> csrf.disable())
+
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/user/login", "/api/user/signUp", "/swagger-ui/**", "/api-docs/**").permitAll()
+                        .requestMatchers("/api/recruits/**").hasRole("USER")   // ← 경로 앞에 `/` 빼먹지 않게 수정
                         .anyRequest().authenticated()
                 )
-                // 세션 기반(기본: IF_REQUIRED). 필요시 정책 명시 가능
+
+                .exceptionHandling(ex -> ex
+                        // 로그인 안 됐을 때 (401)
+                        .authenticationEntryPoint((request, response, e) -> {
+                            var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+                            System.out.println("[401 Unauthorized] auth=" + auth);
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+                        })
+                        // 로그인은 됐는데 권한이 부족할 때 (403)
+                        .accessDeniedHandler((request, response, e) -> {
+                            var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+                            System.out.println("[403 Forbidden]");
+                            if (auth != null) {
+                                System.out.println(" - name       : " + auth.getName());
+                                System.out.println(" - principal  : " + auth.getPrincipal());
+                                System.out.println(" - authorities: " + auth.getAuthorities());
+                                System.out.println(" - class      : " + auth.getClass().getName());
+                            } else {
+                                System.out.println(" - auth is null");
+                            }
+                            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Forbidden");
+                        })
+                )
+
+                // 세션 기반 관리 (기본은 IF_REQUIRED)
                 .sessionManagement(sess -> sess.sessionFixation().migrateSession());
 
         return http.build();
     }
+
 }

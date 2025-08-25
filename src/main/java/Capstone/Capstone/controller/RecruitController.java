@@ -5,6 +5,7 @@ import Capstone.Capstone.Service.UserService;
 import Capstone.Capstone.dto.RatingDto;
 import Capstone.Capstone.dto.RecruitDto;
 import Capstone.Capstone.dto.DistanceDto;
+import Capstone.Capstone.dto.RecruitRequest;
 import Capstone.Capstone.entity.User;
 import Capstone.Capstone.entity.Recruit;
 import io.swagger.v3.oas.annotations.Operation;
@@ -63,30 +64,20 @@ public class RecruitController {
     @PostMapping("/recruits")
     @Tag(name="RECRUIT API")
     @Operation(summary = "모집 글 생성",description = "모집 글을 생성합니다.")
-    public ResponseEntity<Recruit> createRecruit(@RequestBody RecruitDto recruitDto) {
-
+    public ResponseEntity<Recruit> createRecruit(@RequestBody RecruitRequest recruitRequest) {
 
 
             //출발지에서 목적지
-            double distance=recruitService.calculateDistance(recruitDto.getDepartureX(), recruitDto.getDepartureY(), recruitDto.getArrivalX(), recruitDto.getArrivalY());
+            double distance=recruitService.calculateDistance(recruitRequest.getDepartureX(), recruitRequest.getDepartureY(), recruitRequest.getArrivalX(), recruitRequest.getArrivalY());
             //현재위치에서 출발지
-            double distance2 = recruitService.calculateDistance(recruitDto.getCurrentX(), recruitDto.getCurrentY(), recruitDto.getDepartureX(), recruitDto.getDepartureY());
+            double distance2 = recruitService.calculateDistance(recruitRequest.getCurrentX(), recruitRequest.getCurrentY(), recruitRequest.getDepartureX(), recruitRequest.getDepartureY());
 
-            recruitDto.setDistance(distance);
-            recruitDto.setDistance2(distance2);
+            recruitRequest.setDistance(distance);
+            recruitRequest.setDistance2(distance2);
             int fare = recruitService.calculateTaxiFare(distance);
-            recruitDto.setFare(fare);
-            recruitDto.setFull(false);
-
-
-            Recruit createdRecruit = recruitService.createRecruit(recruitDto);
-
+            Recruit createdRecruit = recruitService.createRecruit(recruitRequest);
 
             return new ResponseEntity<>(createdRecruit, HttpStatus.CREATED);
-
-
-
-
 
     }
 
@@ -169,8 +160,8 @@ public class RecruitController {
     }
 
     @PostMapping("recruits/distance")
-    public ResponseEntity<Integer> calculate(@RequestBody DistanceDto distanceDto){
-        int distance= recruitService.calculateDistance(distanceDto.getDepartureX(), distanceDto.getDepartureY(), distanceDto.getArrivalX(), distanceDto.getArrivalY());
+    public ResponseEntity<Double> calculate(@RequestBody DistanceDto distanceDto){
+        double distance= recruitService.calculateDistance(distanceDto.getDepartureX(), distanceDto.getDepartureY(), distanceDto.getArrivalX(), distanceDto.getArrivalY());
 
         return new ResponseEntity<>(distance,HttpStatus.OK);
     }
@@ -198,9 +189,9 @@ public class RecruitController {
         return ResponseEntity.ok().build();
     }
     @PutMapping("/recruits/distance2")
-    public ResponseEntity<Integer> calculateDistanceFromUser(@RequestBody DistanceDto distanceDto) {
+    public ResponseEntity<Double> calculateDistanceFromUser(@RequestBody DistanceDto distanceDto) {
         log.info("{},{},{},{}",distanceDto.getCurrentX(),distanceDto.getCurrentY(),distanceDto.getArrivalY(),distanceDto.getArrivalX());
-        int distance2 = recruitService.calculateDistance(distanceDto.getCurrentX(), distanceDto.getCurrentY(), distanceDto.getArrivalX(), distanceDto.getArrivalY());
+        double distance2 = recruitService.calculateDistance(distanceDto.getCurrentX(), distanceDto.getCurrentY(), distanceDto.getArrivalX(), distanceDto.getArrivalY());
 
         return new ResponseEntity<>(distance2, HttpStatus.OK);
     }

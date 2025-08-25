@@ -2,10 +2,15 @@ package Capstone.Capstone.Security;
 
 import Capstone.Capstone.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+
+import java.util.Collection;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -25,4 +30,8 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .authorities("ROLE_USER")
                 .build();
     }
+
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        // 방식 A: hasRole("USER")를 쓸 계획이라면
+        return List.of(new SimpleGrantedAuthority("ROLE_USER"));}
 }
